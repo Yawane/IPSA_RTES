@@ -1,14 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from tqdm import tqdm
-
 
 
 def factorial(n):
     return n if n ==1 else n * factorial(n-1)
 
 
-def is_valid(C, T):
+def is_scheduable(C, T):
     print(np.round(np.sum(C / T), 2), end="\t")
     if np.sum(C / T) < 1:
         print("Is schedulable.")
@@ -22,15 +20,33 @@ def count_valid(k):
     return factorial(sum(k)) // np.prod([factorial(ki) for ki in k])
 
 # %% permutation functions
+
+def is_valid(seq):
+    n = len(seq)
+    for i in range(n):
+        task_i, occ_i = divmod(seq[i], 10)
+        for j in range(i):
+            task_j, occ_j = divmod(seq[j], 10)
+            
+            if task_i == task_j and occ_i < occ_j:
+                return False
+    return True
+
+
 def all_permutations(task):
     a = task
     n = len(a)
     
     c = [0] * n
     
-    results = np.zeros((factorial(sum(30 // tab[:, 1])), n), dtype=int)
-    results[0, :] = a.copy()
-    index = 1
+    # results = np.zeros((factorial(sum(30 // tab[:, 1])), n), dtype=int)
+    results = []
+    index = 0
+    if is_valid(a):
+        # results[0, :] = a.copy()
+        # index += 1
+        results.append(np.copy(a))
+        
     
     i = 0
     while i < n:
@@ -39,14 +55,18 @@ def all_permutations(task):
             temp = a[i]
             a[i] = a[swap_idx]
             a[swap_idx] = temp
-            results[index] = a.copy()
-            index += 1
+            
+            if is_valid(a):
+                # results[index] = a.copy()
+                # index += 1
+                results.append(a.copy())
             c[i] += 1
             i = 0
         else:
             c[i] = 0
             i += 1
     
+    # return np.array(results)
     return np.array(results)
     
 
@@ -253,13 +273,13 @@ tab = np.array([[3, 5],
 task = get_one_permutation(tab)
 
 
-if not is_valid(tab[:, 0], tab[:, 1]):
+if not is_scheduable(tab[:, 0], tab[:, 1]):
     raise ValueError("Tab is not scheduable !!")
 
 # task = np.array([11, 12, 21], dtype='int16')
 
-permutations = all_permutations(task)
-valid_perm = valid_permutations(permutations)
+valid_perm = all_permutations(task)
+# valid_perm = valid_permutations(permutations)
 
 
 # for perm in permutations:
@@ -317,8 +337,8 @@ for current_index in range(valid_perm.shape[0]): # valid_perm.shape[0]
                 did_pass[pos] = False
         # print(timing[0])
 
-
-# show_scheduals(valid_perm, timings, 2, search=0)
+# %%
+show_scheduals(valid_perm, timings, 2, search=0)
 
 # %% verify if timing is respected
 
