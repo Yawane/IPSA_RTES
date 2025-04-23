@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 
 //TODO: all_permutation()
@@ -31,18 +33,19 @@ void free_permutation_list(struct permutation* head);
 void print_permutation_list(struct permutation* head, int size);
 
 
-#define DEBUG 1
-#define SIZE 3
+#define DEBUG 0
+#define SIZE 4
 
 int main() {
     int tab[SIZE][2] = {
+            {2, 5},
             {2, 10},
-            {3, 10},
-            {3, 40}
+            {2, 15},
+            {3, 30}
     };
 
 
-#if DEBUG==1
+#if DEBUG
     printf("Running debug...\n\n");
     int seq_size = 7;
     int arr1[] = {11, 31, 21, 12, 22, 13, 23};
@@ -81,10 +84,20 @@ int main() {
     printf("arr3 is_ok?: %s\n", is_ok3? "True": "False");
 
     printf("---------------------------\n");
-    int* a = get_one_permutation(tab);
-    show_seq(a, get_length(tab));
 #endif
+    clock_t start, end;
+    double time_used;
 
+    start = clock();
+
+    short int seq_size = get_length(tab);
+    struct permutation* head = all_permutations(tab);
+
+    end = clock();
+    time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("Running time: %.5lf s", time_used);
+
+    // print_permutation_list(head, seq_size);
     return 0;
 }
 
@@ -200,7 +213,7 @@ int* get_timing(int tab[][2], int seq[], const int size) {
 int get_length(int tab[][2]) {
     int length = 0;
     for (int i=0 ; i<SIZE ; i++) {
-        length += 40 / tab[i][1];
+        length += 30 / tab[i][1];
     }
     return length;
 }
@@ -213,14 +226,70 @@ int* get_one_permutation(int tab[][2]) {
     short int index = 0;
     for (int line=0 ; line<SIZE ; line++) {
         int T = tab[line][1];
-        for (int i=1 ; i<=40 / T ; i++) seq[index++] = 10 * (line+1) + i;
+        for (int i=1 ; i<=30 / T ; i++) seq[index++] = 10 * (line+1) + i;
     }
 
     return seq;
 }
 
 struct permutation* all_permutations(int tab[][2]) {
-    return NULL;
+    struct permutation* head = NULL;
+
+    int* seq = get_one_permutation(tab);
+    int length = get_length(tab);
+
+    short int c[length];
+    for (int i=0 ; i<length ; i++) c[i] = 0;
+
+    // short index = 0;
+    if (is_valid(seq, length)) {
+        int* timing = get_timing(tab, seq, length);
+
+        if (timing[2*length + 1]) {
+            int delay = timing[2*length];
+
+            int* seq_copy = (int*)malloc(sizeof(int) * length);
+            memcpy(seq_copy, seq, sizeof(int) * length);
+
+            struct permutation* new = create_permutation(seq_copy, timing, delay);
+            append_permutation(&head, new);
+
+        } else free(timing);
+    }
+    int i = 0;
+    while (i < length) {
+        if (c[i] < i) {
+            short int swap_idx = 0;
+            if (i%2 != 0) swap_idx = c[i];
+
+            int temp = seq[i];
+            seq[i] = seq[swap_idx];
+            seq[swap_idx] = temp;
+
+            if (is_valid(seq, length)) {
+                int* timing = get_timing(tab, seq, length);
+
+                if (timing[2*length + 1]) {
+                    int delay = timing[2*length];
+
+                    int* seq_copy = (int*)malloc(sizeof(int) * length);
+                    memcpy(seq_copy, seq, sizeof(int) * length);
+
+                    struct permutation* new = create_permutation(seq_copy, timing, delay);
+                    append_permutation(&head, new);
+
+                } else free(timing);
+            }
+            c[i]++;
+            i = 0;
+        }
+        else {
+            c[i] = 0;
+            i++;
+        }
+    }
+
+    return head;
 }
 
 
