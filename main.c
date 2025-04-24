@@ -15,6 +15,7 @@ struct permutation {
 
 int factorial(int n);
 int sum(int seq[], int start, int end);
+int maxT(int tab[][2]);
 
 void show_seq(int seq[], const int size);
 
@@ -30,18 +31,25 @@ int count_permutations(struct permutation* head);
 void append_permutation(struct permutation** head_ref, struct permutation* new_node);
 struct permutation* create_permutation(int* seq, int* timing, int delay);
 void free_permutation_list(struct permutation* head);
+
 void print_permutation_list(struct permutation* head, int size);
+void print_permutation_nicely(struct permutation* head, int size);
+
+int min_delay(struct permutation* head);
+struct permutation* min_delay_permutations(struct permutation* head, int min_delay);
 
 
 #define DEBUG 0
-#define SIZE 4
+#define SIZE 6
 
 int main() {
     int tab[SIZE][2] = {
-            {2, 5},
             {2, 10},
-            {2, 15},
-            {3, 30}
+            {3, 10},
+            {2, 20},
+            {2, 20},
+            {2, 40},
+            {2, 40}
     };
 
 
@@ -84,20 +92,39 @@ int main() {
     printf("arr3 is_ok?: %s\n", is_ok3? "True": "False");
 
     printf("---------------------------\n");
-#endif
+
+    printf("max is %d\n", maxT(tab));
+#else
     clock_t start, end;
     double time_used;
 
     start = clock();
 
+    if (is_scheduable(tab, SIZE) > 1.0f) {
+        printf("tab is Not Scheduable: %.3lf", is_scheduable(tab, SIZE));
+        return 0;
+    }
+
     short int seq_size = get_length(tab);
     struct permutation* head = all_permutations(tab);
 
+
+
+    printf("%d valid permutations.\n", count_permutations(head));
+
+    int best_delay = min_delay(head);
+    printf("Best delay is %d\n", best_delay);
+
+    struct permutation* best_permutations = min_delay_permutations(head, best_delay);
+    printf("%d equivalent best permutations.\n", count_permutations(best_permutations));
+
+
+    print_permutation_nicely(best_permutations, get_length(tab));
+    free_permutation_list(head);
     end = clock();
     time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("Running time: %.5lf s", time_used);
-
-    // print_permutation_list(head, seq_size);
+    printf("\nRunning time: %.5lf s\n", time_used);
+#endif
     return 0;
 }
 
@@ -107,11 +134,22 @@ int factorial(int n) {
     else return n * factorial(n - 1);
 }
 
+
 int sum(int seq[], int start, int end) {
     int s = 0;
     for (int i=start ; i<end ; i++) s += seq[i];
     return s;
 }
+
+
+int maxT(int tab[][2]) {
+    int max = 0;
+    for (int i=0 ; i<SIZE ; i++) {
+        if (max < tab[i][1]) max = tab[i][1];
+    }
+    return max;
+}
+
 
 void show_seq(int seq[], const int size) {
     printf("[ ");
@@ -141,6 +179,7 @@ int is_valid(int seq[], const int size) {
     }
     return 1;
 }
+
 
 int* get_timing(int tab[][2], int seq[], const int size) {
     const int full_size = size * 2 + 2;
@@ -210,13 +249,15 @@ int* get_timing(int tab[][2], int seq[], const int size) {
     return timing;
 }
 
+
 int get_length(int tab[][2]) {
     int length = 0;
     for (int i=0 ; i<SIZE ; i++) {
-        length += 30 / tab[i][1];
+        length += maxT(tab) / tab[i][1];
     }
     return length;
 }
+
 
 int* get_one_permutation(int tab[][2]) {
     int length = get_length(tab);
@@ -226,11 +267,12 @@ int* get_one_permutation(int tab[][2]) {
     short int index = 0;
     for (int line=0 ; line<SIZE ; line++) {
         int T = tab[line][1];
-        for (int i=1 ; i<=30 / T ; i++) seq[index++] = 10 * (line+1) + i;
+        for (int i=1 ; i<=maxT(tab) / T ; i++) seq[index++] = 10 * (line+1) + i;
     }
 
     return seq;
 }
+
 
 struct permutation* all_permutations(int tab[][2]) {
     struct permutation* head = NULL;
@@ -303,6 +345,7 @@ int count_permutations(struct permutation* head) {
     return count;
 }
 
+
 void append_permutation(struct permutation** head_ref, struct permutation* new_node) {
     if (*head_ref == NULL) {
         *head_ref = new_node;
@@ -358,4 +401,56 @@ void print_permutation_list(struct permutation* head, int size) {
 
         head = head->next;
     }
+}
+
+
+void print_permutation_nicely(struct permutation* head, int size) {
+    int index = 0;
+    while (head != NULL) {
+        printf("Permutation %2d: [ ", ++index);
+        for (int i = 0; i < size; i++) {
+            printf("%d ", head->seq[i]);
+        }
+        printf("]");
+        printf("\tdelay = %d\t", head->delay);
+        printf("\n");
+
+        head = head->next;
+    }
+}
+
+
+int min_delay(struct permutation* head) {
+    int min = INT_MAX;
+    struct permutation* current = head;
+    while (current != NULL) {
+        if (current->delay < min) min = current->delay;
+        current = current->next;
+    }
+    return min;
+}
+
+
+struct permutation* min_delay_permutations(struct permutation* head, int min_delay) {
+    struct permutation* filtered_head = NULL;
+    struct permutation* current = head;
+
+    while (current != NULL) {
+        if (current->delay == min_delay) {
+            // Make deep copies of seq and timing
+            //int* seq_copy = (int*)malloc(sizeof(int) * get_length_from_timing(current->timing)); // assume length can be inferred
+            //memcpy(seq_copy, current->seq, sizeof(int) * get_length_from_timing(current->timing));
+
+            //int timing_len = get_timing_length(current->timing); // must return 2*length+2
+            //int* timing_copy = (int*)malloc(sizeof(int) * timing_len);
+            //memcpy(timing_copy, current->timing, sizeof(int) * timing_len);
+
+            struct permutation* new_perm = create_permutation(current->seq, current->timing, current->delay);
+            append_permutation(&filtered_head, new_perm);
+        }
+
+        current = current->next;
+    }
+
+    return filtered_head;
 }
