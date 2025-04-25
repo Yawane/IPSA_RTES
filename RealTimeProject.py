@@ -7,14 +7,13 @@ def factorial(n):
     return n if n ==1 else n * factorial(n-1)
 
 
-def is_scheduable(C, T):
-    print(np.round(np.sum(C / T), 2), end="\t")
-    if np.sum(C / T) < 1:
-        print("Is schedulable.")
-        return True
+def is_scheduable(task_set):
+    total_utilization = np.sum(task_set[:, 0] / task_set[:, 1])
+    print(f"Total Utilization is {total_utilization:<.3f}", end=" ")
+    if total_utilization < 1:
+        print("--> Is schedulable.")
     else:
-        print("Is not schedulable.", end="")
-        return False
+        raise ValueError("Task set is not schedulable.")
 
 def count_valid(k):
     print(k)
@@ -85,14 +84,16 @@ def get_timing(seq):
 
 
 
-def all_permutations(task):
-    a = task
+def all_permutations(tab):
+    a = get_one_permutation(tab)
     n = len(a)
     
     c = [0] * n
     
     # results = np.zeros((factorial(sum(30 // tab[:, 1])), n), dtype=int)
     results = []
+    bad = []
+    bad_timings = []
     timings = []
     delays = []
     
@@ -130,6 +131,9 @@ def all_permutations(task):
                     results.append(a.copy())
                     timings.append(timing)
                     delays.append(delay)
+                else:
+                    bad.append(a.copy())
+                    bad_timings.append(timing)
             c[i] += 1
             i = 0
         else:
@@ -137,7 +141,7 @@ def all_permutations(task):
             i += 1
     
     # return np.array(results)
-    return np.array(results), np.array(timings), np.array(delays)
+    return np.array(results), np.array(timings), np.array(delays), bad, bad_timings
 
 
 def get_one_permutation(tab):
@@ -156,8 +160,8 @@ def get_one_permutation(tab):
 def show_scheduals(permutations, timings, n=8, search=0):
     fig, axes = plt.subplots(n, 1, figsize=(16, 2.17*n), sharex=False)
     
-    x = np.arange(0, 45)
-    labels = np.array([f"task {tab.shape[0] - i}" for i in range(tab.shape[0])])
+    x = np.arange(0, 40)
+    labels = np.array([f"task {6 - i}" for i in range(6)])
     current_perm_index = n*search
     for ax, current in zip(axes, permutations[n*search:n*(search+1)]):
         labels_bar = []
@@ -174,13 +178,13 @@ def show_scheduals(permutations, timings, n=8, search=0):
             end_task = start_task + timings[current_perm_index, 2*i]
             end_pause = end_task + timings[current_perm_index, 2*i+1]
             
-            y[start_task:end_task] = 3 - task_i
+            y[start_task:end_task] = 6 - task_i
 
             mask[end_task:end_pause] = False
 
         mask[end_pause:] = False
             
-        width = np.full_like(x, .91, dtype=float)
+        width = np.full_like(x, .93, dtype=float)
         ax.barh(y[mask]-1, width[mask], left=x[mask], color = 'red', edgecolor = 'red', align='center', height=1)
         
         
@@ -198,11 +202,11 @@ def show_scheduals(permutations, timings, n=8, search=0):
     return None
 
 
-def show_schedual(permutation, timing):
+def show_schedual(permutation, timing, l=30):
     plt.figure(figsize=(16, 3))
     
-    x = np.arange(0, 45)
-    labels = np.array([f"task {tab.shape[0] - i}" for i in range(tab.shape[0])])
+    x = np.arange(0, l)
+    labels = np.array([f"task {i}" for i in range(tab.shape[0])])
     
     labels_bar = []
 
@@ -217,13 +221,13 @@ def show_schedual(permutation, timing):
         end_task = start_task + timing[2*i]
         end_pause = end_task + timing[2*i+1]
         
-        y[start_task:end_task] = 3 - task_i
+        y[start_task:end_task] = 7 - task_i
 
         mask[end_task:end_pause] = False
         
     mask[end_pause:] = False
         
-    width = np.full_like(x, .91, dtype=float)
+    width = np.full_like(x, 1, dtype=float)
     plt.barh(y[mask]-1, width[mask], left=x[mask], color = 'red', edgecolor = 'red', align='center', height=1)
     
     # for xi, yi, lbl in zip(x, current, labels_bar): # annotate each bar
@@ -248,20 +252,22 @@ def show_schedual(permutation, timing):
 # %% start here
 
 start_clock = time.time()
+
 tab = np.array([[2, 10],
                 [3, 10],
                 [2, 20],
-                [3, 40]])
+                [2, 20],
+                [2, 40],
+                [2, 40],
+                [3, 80]])
 
 task = get_one_permutation(tab)
 
-
-if not is_scheduable(tab[:, 0], tab[:, 1]):
-    raise ValueError("Tab is not scheduable !!")
+is_scheduable(tab)
 
 # task = np.array([11, 12, 21], dtype='int16')
 
-valid_perm, timings, delays = all_permutations(task)
+valid_perm, timings, delays, bad, bad_timings = all_permutations(tab)
 # valid_perm = valid_permutations(permutations)
 
 
@@ -274,15 +280,77 @@ print(valid_perm.shape[0], "valid permutations. \n")
 
 
 min_arg = np.argmin(delays)
-n = len(np.where(delays == delays[min_arg]))
+n = len(np.where(delays == delays[min_arg])[0])
 
 print("minimum delay:", delays[min_arg])
 print(f"There is {n} best schedual.")
 print(f"permutation n°{min_arg}:", valid_perm[min_arg])
 
-show_schedual(valid_perm[min_arg], timings[min_arg])
+show_schedual(bad[0], bad_timings[0], l=30)
 
 
 end_clock = time.time()
 
 print("Run time:", end_clock - start_clock)
+
+
+# %% testing area
+
+tab = np.array([[2, 10],
+                [3, 10],
+                [2, 20],
+                [3, 40]])
+
+
+
+def test():
+    
+    is_scheduable(tab)
+
+    arr1 = np.array([11, 31, 21, 12, 22, 13, 23])
+    arr2 = np.array([21, 11, 12, 22, 31, 13, 23])
+    arr3 = np.array([11, 31, 22, 12, 21, 13, 23])
+    
+    print("arr1 validity:", is_valid(arr1))
+    print("arr2 validity:", is_valid(arr2))
+    print("arr3 validity:", is_valid(arr3))
+    print("-"*15)
+    
+    timing1, delay1, is_timing_ok1 = get_timing(arr1)
+    timing2, delay2, is_timing_ok2 = get_timing(arr2)
+    timing3, delay3, is_timing_ok3 = get_timing(arr3)
+    
+    print("arr1 timing:", timing1)
+    print("arr1 delay: ", delay1)
+    print("arr1 is ok?:", is_timing_ok1)
+    
+    print("-"*15)
+    
+    print("arr2 timing:", timing2)
+    print("arr2 delay: ", delay2)
+    print("arr2 is ok?:", is_timing_ok2)
+    
+    print("-"*15)
+    
+    print("arr3 timing:", timing3)
+    print("arr3 delay: ", delay3)
+    print("arr3 is ok?:", is_timing_ok3)
+    
+    
+if __name__ == '__main__':
+    test()
+    
+    
+# %%
+
+seq1 = np.array([31, 11, 61, 21, 41, 12, 51, 22, 32, 13, 42, 23, 14, 24])
+seq2 = np.array([41, 61, 11, 21, 51, 12, 31, 22, 13, 32, 42, 23, 14, 24])
+seq3 = np.array([11, 61, 51, 21, 41, 31, 12, 22, 32, 42, 13, 23, 14, 24])
+
+timing1, delay1, isok1 = get_timing(seq1)
+timing2, delay2, isok2 = get_timing(seq2)
+timing3, delay3, isok3 = get_timing(seq3)
+
+show_scheduals(np.array([seq1, seq2, seq3]),
+               np.array([timing1, timing2, timing3]),
+               n=3)
