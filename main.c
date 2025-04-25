@@ -19,7 +19,7 @@ int maxT(int tab[][2]);
 
 void show_seq(int seq[], const int size);
 
-float is_scheduable(int tab[][2], const int size);
+float is_schedulable(int tab[][2], const int size);
 int is_valid(int seq[], const int size);
 int* get_timing(int tab[][2], int seq[], const int size);
 
@@ -40,7 +40,7 @@ struct permutation* min_delay_permutations(struct permutation* head, int min_del
 
 
 #define DEBUG 0
-#define SIZE 6
+#define SIZE 5
 
 int main() {
     int tab[SIZE][2] = {
@@ -48,11 +48,8 @@ int main() {
             {3, 10},
             {2, 20},
             {2, 20},
-            {2, 40},
             {2, 40}
     };
-
-
 #if DEBUG
     printf("Running debug...\n\n");
     int seq_size = 7;
@@ -100,15 +97,13 @@ int main() {
 
     start = clock();
 
-    if (is_scheduable(tab, SIZE) > 1.0f) {
-        printf("tab is Not Scheduable: %.3lf", is_scheduable(tab, SIZE));
+    if (is_schedulable(tab, SIZE) > 1.0f) {
+        printf("tab is Not Scheduable: %.3lf", is_schedulable(tab, SIZE));
         return 0;
     }
 
     short int seq_size = get_length(tab);
     struct permutation* head = all_permutations(tab);
-
-
 
     printf("%d valid permutations.\n", count_permutations(head));
 
@@ -117,7 +112,6 @@ int main() {
 
     struct permutation* best_permutations = min_delay_permutations(head, best_delay);
     printf("%d equivalent best permutations.\n", count_permutations(best_permutations));
-
 
     print_permutation_nicely(best_permutations, get_length(tab));
     free_permutation_list(head);
@@ -150,6 +144,12 @@ int maxT(int tab[][2]) {
     return max;
 }
 
+void swap(int* a, int* b) {
+    int t = *a;
+    *a = *b;
+    *b = t;
+}
+
 
 void show_seq(int seq[], const int size) {
     printf("[ ");
@@ -158,7 +158,7 @@ void show_seq(int seq[], const int size) {
 }
 
 
-float is_scheduable(int tab[][2], const int size) {
+float is_schedulable(int tab[][2], const int size) {
     float sum = 0.0f;
     for (int i = 0; i < size; i++) {
         sum += (float)tab[i][0] / (float)tab[i][1];
@@ -196,6 +196,7 @@ int* get_timing(int tab[][2], int seq[], const int size) {
     for (int i=0 ; i<SIZE ; i++) did_pass[i] = 0; // initialize to False
 
     int delay = 0;
+    short int task5_miss = 0;
     int idx = 0;
     for (int c_index=0 ; c_index<size ; c_index++) {
         int c = seq[c_index];
@@ -212,7 +213,6 @@ int* get_timing(int tab[][2], int seq[], const int size) {
                 timing[2*c_index-1]++;
                 idx++;
 
-                // for pos in np.argwhere(idx % tab[:, 1] == 0):
                 for (int i = 0; i < SIZE; i++) {
                     if (idx % tab[i][1] == 0) {
                         did_pass[i] = 0;
@@ -227,7 +227,6 @@ int* get_timing(int tab[][2], int seq[], const int size) {
             timing[2*c_index]++;
             idx++;
 
-            // for pos in np.argwhere(idx % tab[:, 1] == 0):
             for (int i = 0; i < SIZE; i++) {
                 if (idx % tab[i][1] == 0) {
                     did_pass[i] = 0;
@@ -242,7 +241,6 @@ int* get_timing(int tab[][2], int seq[], const int size) {
             timing[is_ok_index] = 0;
             return timing;
         }
-
         timing[delay_index] += real_start - normal_start;
     }
     timing[is_ok_index] = 1;
