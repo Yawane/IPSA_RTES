@@ -253,13 +253,11 @@ def show_schedual(permutation, timing, l=30):
 
 start_clock = time.time()
 
+# shorter task set, less time consumming.
 tab = np.array([[2, 10],
-                [3, 10],
                 [2, 20],
                 [2, 20],
-                [2, 40],
-                [2, 40],
-                [3, 80]])
+                [2, 40]])
 
 task = get_one_permutation(tab)
 
